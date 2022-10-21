@@ -23,6 +23,7 @@ module.exports = async (
   minorWording,
   majorWording,
   patchWording,
+  versionPart,
   rcWording,
   skipTag,
   skipCommit,
@@ -69,7 +70,7 @@ module.exports = async (
     return false;
   }
 
-  const {doMajorVersion, doMinorVersion, doPatchVersion, doPreReleaseVersion} = analyseVersionChange(majorWording, minorWording, patchWording, rcWording, commitMessages);
+  const {doMajorVersion, doMinorVersion, doPatchVersion, doPreReleaseVersion} = analyseVersionChange(majorWording, minorWording, patchWording, versionPart, rcWording, commitMessages);
   logInfo(`Should do version change? ${JSON.stringify({doMajorVersion, doMinorVersion, doPatchVersion, doPreReleaseVersion})}`);
   
   //Should we do any version updates? 

@@ -31,6 +31,11 @@ inputs:
       Use "," to separate multiple words.
     default: 'fix'
     required: false
+  version-part:
+    description: |
+      This indicates which version part to bump.  If specified, it will force bump on that segment. Options [Major | Minor | Patch]
+    default: ''
+    required: false
   release-candidate-wording:
     description: |
       Words list that trigger a release candidate version bump.

@@ -257,7 +257,7 @@ function getRelevantCommitMessages(commitMessages, commitMessageToUse, tagPrefix
 /**
  * Figure out which version change to do.
  */
-function analyseVersionChange(majorWording, minorWording, patchWording, rcWording, commitMessages) {
+function analyseVersionChange(majorWording, minorWording, patchWording, versionPart, rcWording, commitMessages) {
   // input wordings for MAJOR, MINOR, PATCH, PRE-RELEASE
   const majorWords = majorWording.split(',');
   const minorWords = minorWording.split(',');
@@ -266,6 +266,33 @@ function analyseVersionChange(majorWording, minorWording, patchWording, rcWordin
   const preReleaseWords = rcWording ? rcWording.split(',') : null;
   logInfo(`Config words: ${JSON.stringify({ majorWords, minorWords, patchWords, preReleaseWords })}`);
 
+  let doMajorVersion = false;
+  let doMinorVersion = false;
+  let doPatchVersion = false;
+  let doPreReleaseVersion = false;
+
+  if (versionPart && versionPart !== '')
+  {
+    logInfo(`Version Part set to ${versionPart}`);
+
+    switch(versionPart)
+    {
+      case "Major":
+        doMajorVersion = true;
+        break;
+      case "Minor":
+        doMinorVersion = true;
+        break;
+      case "Patch":
+        doPatchVersion = true;
+        break;
+      default:
+        logError(`Version Part is not a valid option.  Must be one of these values: Major, Minor, Patch`);
+    }
+
+    return {doMajorVersion, doMinorVersion, doPatchVersion, doPreReleaseVersion};
+  }
+
   //Only use the first part of a commit message i.e.
   // 'ci: feat test' becomes 'ci' as it's the only relevant part up until the first ':'
   const mappedCommitMessages = commitMessages.map((commitMessage) => {
@@ -273,10 +300,6 @@ function analyseVersionChange(majorWording, minorWording, patchWording, rcWordin
   });
   logInfo(`Mapped commit messages: ${JSON.stringify(mappedCommitMessages)}`);
 
-  let doMajorVersion = false;
-  let doMinorVersion = false;
-  let doPatchVersion = false;
-  let doPreReleaseVersion = false;
   // case: if wording for MAJOR found
   if (
     mappedCommitMessages.some(

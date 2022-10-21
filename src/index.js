@@ -8,6 +8,7 @@ const { exitSuccess, logError, exitFailure } = require('./utils');
     const minorWording = core.getInput('minor-wording');
     const majorWording = core.getInput('major-wording');
     const patchWording = core.getInput('patch-wording');
+    const versionPart = core.getInput('version-part');
     const rcWording = core.getInput('release-candidate-wording');
     const skipTag = core.getBooleanInput('skip-tag');
     const skipCommit = core.getBooleanInput('skip-commit');
@@ -22,6 +23,7 @@ const { exitSuccess, logError, exitFailure } = require('./utils');
       minorWording,
       majorWording,
       patchWording,
+      versionPart,
       rcWording,
       skipTag,
       skipCommit,

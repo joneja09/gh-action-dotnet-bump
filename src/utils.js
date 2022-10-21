@@ -206,7 +206,7 @@ async function getCommitMessages(gitEvents, githubToken) {
   const client = github.getOctokit(githubToken);
 
   const response = await client.rest.repos.listCommits({
-    owner: gitEvents.repository.organization,
+    owner: gitEvents.repository.owner,
     repo: gitEvents.repository.name
   });
 

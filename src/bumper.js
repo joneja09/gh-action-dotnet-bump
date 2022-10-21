@@ -13,6 +13,7 @@ const {
   getCurrentVersionCsproj,
   getNewProjectContentCsproj,
   getCurrentVersionAssembly,
+  getNewProjectContentAssembly,
   getCommitMessages,
   getRelevantCommitMessages,
   logError
@@ -33,6 +34,7 @@ module.exports = async (
   preReleaseId,
   commitMessageToUse, 
   type,
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   releaseCommitMessageRegex) => {
   const token = process.env.GITHUB_TOKEN;
   // eslint-disable-next-line security/detect-non-literal-require
@@ -60,12 +62,12 @@ module.exports = async (
   core.setOutput('oldVersion', currentVersion);
   logInfo(`Current version: ${currentVersion}`);
   
-  const commitMessages = (versionPart && versionPart !== "") ? [""] : await getCommitMessages(gitEvents, token);
+  const commitMessages = (versionPart && versionPart !== '') ? [''] : await getCommitMessages(gitEvents, token);
   logInfo(`Found commit messages: ${JSON.stringify(commitMessages, null, 4)}`);
 
-  const relevantCommitMessages = (versionPart && versionPart !== "") ? [""] : getRelevantCommitMessages(commitMessages, releaseCommitMessageRegex, tagPrefix);
+  const relevantCommitMessages = (versionPart && versionPart !== '') ? [''] : getRelevantCommitMessages(commitMessages, releaseCommitMessageRegex, tagPrefix);
   logInfo(`Relevant commit messages: ${JSON.stringify(relevantCommitMessages, null, 4)}`);
-  if ((!versionPart || versionPart === "") && relevantCommitMessages.length === 0) {
+  if ((!versionPart || versionPart === '') && relevantCommitMessages.length === 0) {
     exitSuccess('No action necessary because latest commit was a bump!');
     return false;
   }

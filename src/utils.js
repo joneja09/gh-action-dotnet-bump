@@ -128,7 +128,7 @@ function getCurrentVersionAssembly(assemblyDocument) {
     const assemblyVersion = matches[matches.length-1].groups.version;
     // Because assembly version matches major.minor.build.patch we need to convert to semver (remove build)
     const versionSplit = assemblyVersion.split('.');
-    return `${versionSplit[0]}.${versionSplit[1]}.${versionSplit[3]}`;
+    return `${versionSplit[0]}.${versionSplit[1]}.${versionSplit[2]}`;
   }
   return undefined;
 }
@@ -138,9 +138,10 @@ function getNewProjectContentAssembly(newSemverVersion, assemblyDocument) {
   const matchAssemblyVersion = /\[assembly: AssemblyVersion\(\"(?<version>.*)\"\)\]/gm;
   const matches = matchAssemblyVersion.execAll(assemblyDocument);
   const semverSplit = newSemverVersion.split('.');
-  const newAssemblyVersion = `${semverSplit[0]}.${semverSplit[1]}.${semverSplit.slice(2)}.0`;
+  const newAssemblyVersion = `${semverSplit[0]}.${semverSplit[1]}.${semverSplit[2]}.0`;
   if (matches.length > 0) {
-    matches[matches.length-1].groups.version.replace(matches[matches.length-1].groups.version, newAssemblyVersion);
+    const currentMatch = matches[matches.length-1].groups.version;
+    assemblyDocument.replace(currentMatch, newAssemblyVersion);
     // Remove and add version info, as it is easier.
     // assemblyDocument = assemblyDocument.replace(matchAssemblyVersion, '');
   } 
@@ -272,23 +273,21 @@ function analyseVersionChange(majorWording, minorWording, patchWording, versionP
   let doPatchVersion = false;
   let doPreReleaseVersion = false;
 
-  if (versionPart && versionPart !== '')
-  {
+  if (versionPart && versionPart !== '') {
     logInfo(`Version Part set to ${versionPart}`);
 
-    switch(versionPart)
-    {
-      case "Major":
-        doMajorVersion = true;
-        break;
-      case "Minor":
-        doMinorVersion = true;
-        break;
-      case "Patch":
-        doPatchVersion = true;
-        break;
-      default:
-        logError(`Version Part is not a valid option.  Must be one of these values: Major, Minor, Patch`);
+    switch (versionPart) {
+    case 'Major':
+      doMajorVersion = true;
+      break;
+    case 'Minor':
+      doMinorVersion = true;
+      break;
+    case 'Patch':
+      doPatchVersion = true;
+      break;
+    default:
+      logError('Version Part is not a valid option.  Must be one of these values: Major, Minor, Patch');
     }
 
     return {doMajorVersion, doMinorVersion, doPatchVersion, doPreReleaseVersion};

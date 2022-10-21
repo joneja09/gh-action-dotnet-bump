@@ -140,8 +140,9 @@ function getNewProjectContentAssembly(newSemverVersion, assemblyDocument) {
   const semverSplit = newSemverVersion.split('.');
   const newAssemblyVersion = `${semverSplit[0]}.${semverSplit[1]}.${semverSplit[2]}.0`;
   if (matches.length > 0) {
-    const currentMatch = matches[matches.length-1].groups.version;
-    assemblyDocument.replace(currentMatch, newAssemblyVersion);
+    const currentMatch = matches[matches.length-1];
+    //const updatedAssemblyVersion = currentMatch.repalce(currentMatch.groups.version, newAssemblyVersion);
+    assemblyDocument = assemblyDocument.replace(currentMatch.groups.version, newAssemblyVersion);
     // Remove and add version info, as it is easier.
     // assemblyDocument = assemblyDocument.replace(matchAssemblyVersion, '');
   } 

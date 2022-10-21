@@ -104,7 +104,7 @@ module.exports = async (
   if (type === 'csproj') {
     newContent = getNewProjectContentCsproj(newVersion, projectFile);
   } else if (type === 'assembly') {
-    newContent = getCurrentVersionAssembly(projectFile);
+    newContent = getNewProjectContentAssembly(newVersion, projectFile);
   }
   logInfo(`New project file: ${newContent}`);
   // eslint-disable-next-line security/detect-non-literal-fs-filename

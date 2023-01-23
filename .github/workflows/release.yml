@@ -2,8 +2,7 @@
 name: Release
 
 env:
-  GH_USER: jonaslagoni
-  GH_EMAIL: <jonas-lt@live.dk>
+  GH_USER: joneja09
 
 on:
   push:

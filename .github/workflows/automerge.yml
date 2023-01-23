@@ -2,7 +2,7 @@
 name: Automerge release bump PR
 
 env:
-  GH_USER: jonaslagoni
+  GH_USER: joneja09
 on:
   pull_request_target:
     types:
@@ -21,7 +21,7 @@ on:
 jobs:
   # Required if repository require reviews of PR's
   autoapprove:
-    if: github.event.pull_request.draft == false && github.event.pull_request.user.login == 'jonaslagoni' && !contains(github.event.pull_request.labels.*.name, 'released')
+    if: github.event.pull_request.draft == false && github.event.pull_request.user.login == 'joneja09' && !contains(github.event.pull_request.labels.*.name, 'released')
     runs-on: ubuntu-latest
     steps:
       - name: Autoapproving
@@ -42,7 +42,7 @@ jobs:
             })
   automerge:
     needs: [autoapprove]
-    if: github.event.pull_request.user.login == 'jonaslagoni'
+    if: github.event.pull_request.user.login == 'joneja09'
     runs-on: ubuntu-latest
     steps:
       - name: Automerging

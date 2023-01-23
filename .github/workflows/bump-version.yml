@@ -1,7 +1,7 @@
 ---
 name: Bump version
 env:
-  GH_USER: jonaslagoni <jonas-lt@live.dk>
+  GH_USER: joneja09
 on:
   release:
     types:

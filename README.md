@@ -8,16 +8,6 @@ GitHub action which bumps the library version that follows Semantic Versioning.
 
 Make sure you use the `actions/checkout@v2` action!
 
-**Migration: Version v9 and up**
-
-Remove the 'actions/setup-node@v1' step from your action.yml file
-```
-      - name: 'Setup Node.js'
-        uses: 'actions/setup-node@v1'
-        with:
-          node-version: 14
-```
-
 ### Workflow
 
 * Based on the commit messages, increment the version from the latest release.
@@ -37,7 +27,7 @@ Remove the 'actions/setup-node@v1' step from your action.yml file
 Customize the messages that trigger the version bump. It must be a string, case sensitive, coma separated  (optional). Example:
 ```yaml
 - name:  'Automated Version Bump'
-  uses:  '@lagoni/gh-action-dotnet-bump@master'
+  uses:  '@joneja09/gh-action-dotnet-bump@main'
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   with:
@@ -51,7 +41,7 @@ Customize the messages that trigger the version bump. It must be a string, case 
 Set a default version bump to use  (optional - defaults to patch). Example:
 ```yaml
 - name:  'Automated Version Bump'
-  uses:  '@lagoni/gh-action-dotnet-bump@master'
+  uses:  '@joneja09/gh-action-dotnet-bump@main'
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   with:
@@ -62,7 +52,7 @@ Set a default version bump to use  (optional - defaults to patch). Example:
 Set a pre-id value will building prerelease version  (optional - defaults to 'rc'). Example:
 ```yaml
 - name:  'Automated Version Bump'
-  uses:  '@lagoni/gh-action-dotnet-bump@master'
+  uses:  '@joneja09/gh-action-dotnet-bump@main'
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   with:
@@ -74,7 +64,7 @@ Set a pre-id value will building prerelease version  (optional - defaults to 'rc
 Prefix that is used for the git tag  (optional). Example:
 ```yaml
 - name:  'Automated Version Bump'
-  uses:  '@lagoni/gh-action-dotnet-bump@master'
+  uses:  '@joneja09/gh-action-dotnet-bump@main'
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   with:
@@ -85,7 +75,7 @@ Prefix that is used for the git tag  (optional). Example:
 The tag is not added to the git repository  (optional). Example:
 ```yaml
 - name:  'Automated Version Bump'
-  uses:  '@lagoni/gh-action-dotnet-bump@master'
+  uses:  '@joneja09/gh-action-dotnet-bump@main'
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   with:
@@ -96,7 +86,7 @@ The tag is not added to the git repository  (optional). Example:
 No commit is made after the version is bumped (optional). Must be used in combination with `skip-tag`, since if there's no commit, there's nothing to tag. Example:
 ```yaml
 - name:  'Automated Version Bump'
-  uses:  '@lagoni/gh-action-dotnet-bump@master'
+  uses:  '@joneja09/gh-action-dotnet-bump@main'
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   with:
@@ -108,7 +98,7 @@ No commit is made after the version is bumped (optional). Must be used in combin
 If true, skip pushing any commits or tags created after the version bump (optional). Example:
 ```yaml
 - name:  'Automated Version Bump'
-  uses:  '@lagoni/gh-action-dotnet-bump@master'
+  uses:  '@joneja09/gh-action-dotnet-bump@main'
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   with:
@@ -116,21 +106,21 @@ If true, skip pushing any commits or tags created after the version bump (option
 ```
 
 #### **TARGET-BRANCH:**
-Set a custom target branch to use when bumping the version. Useful in cases such as updating the version on master after a tag has been set (optional). Example:
+Set a custom target branch to use when bumping the version. Useful in cases such as updating the version on main after a tag has been set (optional). Example:
 ```yaml
 - name:  'Automated Version Bump'
-  uses:  '@lagoni/gh-action-dotnet-bump@master'
+  uses:  '@joneja09/gh-action-dotnet-bump@main'
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   with:
-    target-branch: 'master'
+    target-branch: 'main'
 ```
 
 #### **commit-message:**
 Set a custom commit message for version bump commit. Useful for skipping additional workflows run on push. Example:
 ```yaml
 - name:  'Automated Version Bump'
-  uses:  '@lagoni/gh-action-dotnet-bump@master'
+  uses:  '@joneja09/gh-action-dotnet-bump@main'
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   with:

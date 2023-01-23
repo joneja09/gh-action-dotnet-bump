@@ -1,21 +1,21 @@
 {
-  "name": "@lagoni/gh-action-dotnet-bump",
+  "name": "@joneja09/gh-action-dotnet-bump",
   "description": "GitHub action for bumping version of .NET libraries with semantic release",
   "version": "0.6.2",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jonaslagoni/gh-action-dotnet-bump.git"
+    "url": "git+https://github.com/joneja09/gh-action-dotnet-bump.git"
   },
   "publishConfig": {
     "access": "public"
   },
   "keywords": [],
-  "author": "Jonas Lagoni (jonas-lt@live.dk)",
+  "author": "Jeff Jones",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/jonaslagoni/gh-action-dotnet-bump/issues"
+    "url": "https://github.com/joneja09/gh-action-dotnet-bump/issues"
   },
-  "homepage": "https://github.com/jonaslagoni/gh-action-dotnet-bump#readme",
+  "homepage": "https://github.com/joneja09/gh-action-dotnet-bump#readme",
   "main": "src/index.js",
   "scripts": {
     "start": "node ./src/index.js",
@@ -26,7 +26,7 @@
     "bump:version": "npm --no-git-tag-version --allow-same-version version $VERSION"
   },
   "dependencies": {
-    "@actions/core": "^1.6.0",
+    "@actions/core": "^1.10.0",
     "@actions/github": "^5.0.3",
     "@xmldom/xmldom": "^0.8.0",
     "semver": "^7.3.5"

@@ -78,7 +78,7 @@ inputs:
       Default
     default: 'ci: version bump to {{version}}'
     required: false
-    
+
 outputs:
   wasBumped:
     description: 'Boolean to check if the version of the library was bumped'

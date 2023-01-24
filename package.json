@@ -16,7 +16,7 @@
     "url": "https://github.com/joneja09/gh-action-dotnet-bump/issues"
   },
   "homepage": "https://github.com/joneja09/gh-action-dotnet-bump#readme",
-  "main": "src/index.js",
+  "main": "./src/index.js",
   "scripts": {
     "start": "node ./src/index.js",
     "test": "jest",

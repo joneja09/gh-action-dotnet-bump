@@ -48,6 +48,17 @@ Set a default version bump to use  (optional - defaults to patch). Example:
     default: prerelease
 ```
 
+#### **version-part:**
+Override to choose the specific version segment to bump.  Example:
+```yaml
+- name:  'Automated Version Bump'
+  uses:  '@joneja09/gh-action-dotnet-bump@main'
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  with:
+    version-part: 'Patch'
+```
+
 #### **pre-id:**
 Set a pre-id value will building prerelease version  (optional - defaults to 'rc'). Example:
 ```yaml

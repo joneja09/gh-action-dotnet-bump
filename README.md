@@ -1,9 +1,6 @@
 # gh-action-dotnet-bump
 GitHub action which bumps the library version that follows Semantic Versioning.
 
-> NOTICE: Pre-release functionality for `type=assembly` is untested and might not work as .NET versioning there does not follow semver.
-
-
 **Attention**
 
 Make sure you use the `actions/checkout@v2` action!

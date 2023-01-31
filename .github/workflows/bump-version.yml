@@ -1,7 +1,7 @@
 ---
 name: Bump version
 env:
-  GH_USER: joneja09
+  GH_USER: Jeff Jones <jeffery.jonesjr12@gmail.com>
 on:
   release:
     types:

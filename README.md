@@ -142,6 +142,7 @@ Set a custom commit message for version bump commit. Useful for skipping additio
 `minor-wording`: Words list that trigger a minor version bump.  Use "," to separate multiple words.  Default: 'feat'
 `major-wording`: Words list that trigger a major version bump.  Use "," to separate multiple words.  Default: 'feat!,fix!,refactor!'
 `version-part`: This indicates which version part to bump.  If specified, it will force bump on that segment. Options [Major | Minor | Patch], Default: ''
+`version-override`: The version to change the project version to.  If specified, it will force setting the project to the supplied version.
 `release-candidate-wording`: Words list that trigger a release candidate version bump. Use "," to separate multiple words. Default: 'next'
 `skip-tag`: Avoid to add a TAG to the version update commit. Options [true, false], Default: true
 `skip-commit`: Avoid to add a commit after the version is bumped. Options [true, false], Default: false

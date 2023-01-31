@@ -36,6 +36,11 @@ inputs:
       This indicates which version part to bump.  If specified, it will force bump on that segment. Options [Major | Minor | Patch]
     default: ''
     required: false
+  version-override:
+    description: |
+      The version to change the project version to.  If specified, it will force setting the project to the supplied version.
+    default: ''
+    required: false
   release-candidate-wording:
     description: |
       Words list that trigger a release candidate version bump.
@@ -77,6 +82,10 @@ inputs:
       Use {{version}} as a placeholder for the new version.
       Default
     default: 'ci: version bump to {{version}}'
+    required: false
+  dry-run:
+    description: 'Allows running the action without modifying the file and committing changes.'
+    default: false
     required: false
 
 outputs:

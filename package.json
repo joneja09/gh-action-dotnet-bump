@@ -19,7 +19,6 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node ./src/index.js",
-    "build": "node build ./src/index.js",
     "test": "jest",
     "lint": "eslint --max-warnings 0 --config \".eslintrc\" \".\"",
     "release": "semantic-release",

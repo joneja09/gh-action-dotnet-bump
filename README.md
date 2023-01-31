@@ -134,3 +134,20 @@ Set a custom commit message for version bump commit. Useful for skipping additio
   with:
     commit-message: 'CI: bumps version to {{version}} [skip ci]'
 ```
+
+#### **Parameter Options**
+`type`: Which type of project are you bumping version for? This is important as .NET Core projects store versions in .csproj files, and .NET framework use AssemblyInfo.cs. Options [csproj, assembly], Default: csproj
+`tag-prefix`: Prefix that is used for the git tag. Default: ''
+`patch-wording`: Words list that trigger a patch version bump.  Use "," to separate multiple words.  Default: 'fix'
+`minor-wording`: Words list that trigger a minor version bump.  Use "," to separate multiple words.  Default: 'feat'
+`major-wording`: Words list that trigger a major version bump.  Use "," to separate multiple words.  Default: 'feat!,fix!,refactor!'
+`version-part`: This indicates which version part to bump.  If specified, it will force bump on that segment. Options [Major | Minor | Patch], Default: ''
+`release-candidate-wording`: Words list that trigger a release candidate version bump. Use "," to separate multiple words. Default: 'next'
+`skip-tag`: Avoid to add a TAG to the version update commit. Options [true, false], Default: true
+`skip-commit`: Avoid to add a commit after the version is bumped. Options [true, false], Default: false
+`skip-push`: If true, skip pushing any commits or tags created after the version bump. Options [true, false], Default: false
+`path-to-file`: (Required) Path to the csproj file where the version is located.
+`target-branch`: A separate branch to perform the version bump on.  Default: ''
+`pre-release-id`: Set a custom id for prerelease build.  Default: 'next'
+`commit-message`: Set a custom commit message for version bump commit. Use {{version}} as a placeholder for the new version.  Default: 'ci: version bump to {{version}}'
+`release-commit-message-regex`: Set a custom commit message regex for release commits. Use {{version}} as a placeholder for the new version.  Default: 'ci: version bump to {{version}}'

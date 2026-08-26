@@ -1,3 +1,4 @@
+const path = require('path');
 const fs = require('fs');
 const bumper = require('../src/bumper');
 const utils = require('../src/utils');
@@ -62,7 +63,15 @@ describe('bumper', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env = { ...originalEnv, GITHUB_WORKSPACE: '', GITHUB_TOKEN: 'token' };
+    process.env = {
+      ...originalEnv,
+      GITHUB_WORKSPACE: '',
+      GITHUB_TOKEN: 'token',
+      GITHUB_EVENT_PATH: '',
+      GITHUB_REF: '',
+      GITHUB_REF_NAME: '',
+      GITHUB_HEAD_REF: ''
+    };
     utils.getProjectContent.mockReturnValue(sampleCsproj);
   });
 
@@ -77,7 +86,7 @@ describe('bumper', () => {
     expect(fs.promises.writeFile).toHaveBeenCalled();
     expect(utils.commitChanges).toHaveBeenCalledWith(expect.objectContaining({
       newVersion: '4.0.0',
-      pathToDocument: 'src/Lib/Lib.csproj'
+      pathToDocument: path.join('src', 'Lib', 'Lib.csproj')
     }));
     expect(utils.getCommitMessages).not.toHaveBeenCalled();
   });

@@ -1,188 +1,190 @@
 # gh-action-dotnet-bump
-GitHub action which bumps the library version that follows Semantic Versioning.
 
-**Attention**
+GitHub Action that bumps a .NET library version using [Semantic Versioning](https://semver.org/).
 
-Make sure you use the `actions/checkout@v2` action!
+It reads the current version from a `.csproj`, `Directory.Build.props`, or `AssemblyInfo.cs` file, decides the next version from commit messages (or an explicit override), then optionally commits, tags, and pushes the change.
 
-### Workflow
+## Requirements
 
-* Based on the commit messages, increment the version from the latest release.
-  * If the string "BREAKING CHANGE", "major" or the Attention pattern `refactor!: drop support for Node 6` is found anywhere in any of the commit messages or descriptions the major
-    version will be incremented.
-  * If a commit message begins with the string "feat" or includes "minor" then the minor version will be increased. This works
-    for most common commit metadata for feature additions: `"feat: new API"` and `"feature: new API"`.
-  * If a commit message contains the word "pre-alpha" or "pre-beta" or "pre-rc" then the pre-release version will be increased (for example specifying pre-alpha: 1.6.0-alpha.1 -> 1.6.0-alpha.2 or, specifying pre-beta: 1.6.0-alpha.1 -> 1.6.0-beta.0)
-  * All other changes will increment the patch version.
-* Push the bumped version back into the repo.
-* Push a tag for the new version back into the repo.
+- Use `actions/checkout` with enough git history to inspect commits. `fetch-depth: 0` is recommended.
+- Grant `contents: write` so the action can commit and push.
+- The default `GITHUB_TOKEN` is enough unless your repository needs a custom token.
 
-### Usage:
-
-
-#### **wording:** 
-Customize the messages that trigger the version bump. It must be a string, case sensitive, coma separated  (optional). Example:
 ```yaml
-- name:  'Automated Version Bump'
-  uses:  '@joneja09/gh-action-dotnet-bump@main'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  with:
-    minor-wording:  'add,Adds,new'
-    major-wording:  'MAJOR,cut-major'
-    patch-wording:  'patch,fixes'     # Providing patch-wording will override commits
-                                      # defaulting to a patch bump.
-    rc-wording:     'RELEASE,alpha'
+permissions:
+  contents: write
 ```
-#### **default:**
-Set a default version bump to use  (optional - defaults to patch). Example:
+
+## Workflow
+
+Based on the commit messages since the last version-bump commit:
+
+- **Major** if a commit is a conventional breaking change (`feat!:`, `fix(api)!:`, or `BREAKING CHANGE` in the body), or matches `major-wording`.
+- **Minor** if a commit type matches `minor-wording` (`feat` and `feature` by default).
+- **Patch** if a commit type matches `patch-wording` (`fix` by default).
+- **Prerelease** if a commit type matches `release-candidate-wording` (`next` by default).
+- Otherwise the `default` bump is used (`patch` by default). Set `default: none` to skip instead.
+
+The action then:
+
+1. Updates the project file.
+2. Commits the change (unless `skip-commit` is `true`).
+3. Creates a tag (unless `skip-tag` is `true`; tagging is off by default).
+4. Pushes to the current or `target-branch` (unless `skip-push` is `true`).
+
+If the latest commit is already a version-bump commit, the action exits without bumping again.
+
+## Usage
+
 ```yaml
-- name:  'Automated Version Bump'
-  uses:  '@joneja09/gh-action-dotnet-bump@main'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+name: Bump version
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Automated Version Bump
+        id: version
+        uses: joneja09/gh-action-dotnet-bump@main
+        with:
+          path-to-file: src/MyLibrary/MyLibrary.csproj
+      - name: Print bump result
+        run: |
+          echo "Bumped: ${{ steps.version.outputs.wasBumped }}"
+          echo "Old: ${{ steps.version.outputs.oldVersion }}"
+          echo "New: ${{ steps.version.outputs.newVersion }}"
+```
+
+### Force a specific segment
+
+```yaml
+- name: Automated Version Bump
+  uses: joneja09/gh-action-dotnet-bump@main
   with:
+    path-to-file: src/MyLibrary/MyLibrary.csproj
+    version-part: Patch
+```
+
+### Set an exact version
+
+```yaml
+- name: Automated Version Bump
+  uses: joneja09/gh-action-dotnet-bump@main
+  with:
+    path-to-file: src/MyLibrary/MyLibrary.csproj
+    version-override: 2.0.0
+```
+
+### Customize bump wording
+
+```yaml
+- name: Automated Version Bump
+  uses: joneja09/gh-action-dotnet-bump@main
+  with:
+    path-to-file: src/MyLibrary/MyLibrary.csproj
+    minor-wording: 'feat,feature,add'
+    major-wording: 'MAJOR,cut-major'
+    patch-wording: 'fix,patch'
+    release-candidate-wording: 'next,alpha'
+    default: none
+```
+
+### Prerelease versions
+
+```yaml
+- name: Automated Version Bump
+  uses: joneja09/gh-action-dotnet-bump@main
+  with:
+    path-to-file: src/MyLibrary/MyLibrary.csproj
     default: prerelease
+    pre-release-id: rc
 ```
 
-#### **version-part:**
-Override to choose the specific version segment to bump.  Example:
-```yaml
-- name:  'Automated Version Bump'
-  uses:  '@joneja09/gh-action-dotnet-bump@main'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  with:
-    version-part: 'Patch'
-```
+### Skip git side effects
 
-#### **pre-id:**
-Set a pre-id value will building prerelease version  (optional - defaults to 'rc'). Example:
 ```yaml
-- name:  'Automated Version Bump'
-  uses:  '@joneja09/gh-action-dotnet-bump@main'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+- name: Automated Version Bump
+  uses: joneja09/gh-action-dotnet-bump@main
   with:
-    default: prerelease
-    pre-id: 'prc'
-```
-
-#### **tag-prefix:**
-Prefix that is used for the git tag  (optional). Example:
-```yaml
-- name:  'Automated Version Bump'
-  uses:  '@joneja09/gh-action-dotnet-bump@main'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  with:
-    tag-prefix:  'v'
-```
-
-#### **skip-tag:**
-The tag is not added to the git repository  (optional). Example:
-```yaml
-- name:  'Automated Version Bump'
-  uses:  '@joneja09/gh-action-dotnet-bump@main'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  with:
-    skip-tag:  'true'
-```
-
-#### **skip-commit:**
-No commit is made after the version is bumped (optional). Must be used in combination with `skip-tag`, since if there's no commit, there's nothing to tag. Example:
-```yaml
-- name:  'Automated Version Bump'
-  uses:  '@joneja09/gh-action-dotnet-bump@main'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  with:
-    skip-commit:  'true'
+    path-to-file: src/MyLibrary/MyLibrary.csproj
+    skip-commit: 'true'
     skip-tag: 'true'
+    skip-push: 'true'
+    dry-run: 'true'
 ```
 
-#### **skip-push:**
-If true, skip pushing any commits or tags created after the version bump (optional). Example:
+### Tag prefix, target branch, and commit message
+
 ```yaml
-- name:  'Automated Version Bump'
-  uses:  '@joneja09/gh-action-dotnet-bump@main'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+- name: Automated Version Bump
+  uses: joneja09/gh-action-dotnet-bump@main
   with:
-    skip-push:  'true'
+    path-to-file: src/MyLibrary/MyLibrary.csproj
+    tag-prefix: v
+    skip-tag: 'false'
+    target-branch: main
+    commit-message: 'ci: version bump to {{version}} [skip ci]'
 ```
 
-#### **TARGET-BRANCH:**
-Set a custom target branch to use when bumping the version. Useful in cases such as updating the version on main after a tag has been set (optional). Example:
-```yaml
-- name:  'Automated Version Bump'
-  uses:  '@joneja09/gh-action-dotnet-bump@main'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  with:
-    target-branch: 'main'
-```
+## Inputs
 
-#### **commit-message:**
-Set a custom commit message for version bump commit. Useful for skipping additional workflows run on push. Example:
-```yaml
-- name:  'Automated Version Bump'
-  uses:  '@joneja09/gh-action-dotnet-bump@main'
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  with:
-    commit-message: 'CI: bumps version to {{version}} [skip ci]'
-```
+| Input | Default | Description |
+| --- | --- | --- |
+| `path-to-file` | _(required)_ | Path to the `.csproj`, `Directory.Build.props`, or `AssemblyInfo.cs` file |
+| `type` | `csproj` | `csproj` or `assembly` |
+| `tag-prefix` | `''` | Prefix added to the git tag, for example `v` |
+| `minor-wording` | `feat,feature` | Commit type words that trigger a minor bump |
+| `major-wording` | `feat!,fix!,refactor!` | Commit type words that trigger a major bump |
+| `patch-wording` | `fix` | Commit type words that trigger a patch bump |
+| `release-candidate-wording` | `next` | Commit type words that trigger a prerelease bump |
+| `default` | `patch` | Bump to use when no wording matches: `major`, `minor`, `patch`, `prerelease`, or `none` |
+| `version-part` | `''` | Force a bump of `Major`, `Minor`, `Patch`, or `Prerelease` |
+| `version-override` | `''` | Set this exact semantic version |
+| `skip-tag` | `true` | Skip creating a git tag |
+| `skip-commit` | `false` | Skip creating a git commit |
+| `skip-push` | `false` | Skip pushing commits and tags |
+| `target-branch` | `''` | Checkout and push this branch instead of the current one |
+| `pre-release-id` | `next` | Prerelease identifier, for example `rc` or `next` |
+| `commit-message` | `ci: version bump to {{version}}` | Commit message. `{{version}}` is replaced with the new version |
+| `release-commit-message-regex` | same as `commit-message` | Pattern used to detect the previous bump commit |
+| `dry-run` | `false` | Calculate the new version without writing, committing, tagging, or pushing |
+| `github-token` | `${{ github.token }}` | Token used to list commits when git history is unavailable |
 
-### **Parameter Options**
-#### type 
-> Which type of project are you bumping version for? This is important as .NET Core projects store versions in .csproj files, and .NET framework use AssemblyInfo.cs. Options [csproj, assembly], Default: csproj
+## Outputs
 
-#### tag-prefix
-> Prefix that is used for the git tag. Default: ''
+| Output | Description |
+| --- | --- |
+| `wasBumped` | `true` when a new version was produced |
+| `oldVersion` | Version found in the project file |
+| `newVersion` | Version after the bump |
 
-#### patch-wording
-> Words list that trigger a patch version bump.  Use "," to separate multiple words.  Default: 'fix'
+## .NET version fields
 
-#### minor-wording
-> Words list that trigger a minor version bump.  Use "," to separate multiple words.  Default: 'feat'
+For SDK-style projects the action updates these properties when they exist:
 
-#### major-wording
-> Words list that trigger a major version bump.  Use "," to separate multiple words.  Default: 'feat!,fix!,refactor!'
+- `Version`
+- `PackageVersion`
+- `VersionPrefix` / `VersionSuffix`
+- `AssemblyVersion` and `FileVersion` (numeric `major.minor.patch.0`, including when the new version is a prerelease)
+- `InformationalVersion`
 
-#### version-part
-> This indicates which version part to bump.  If specified, it will force bump on that segment. Options [Major | Minor | Patch], Default: ''
+If no `<Version>` is present, one is added to the first `PropertyGroup`. If only `<VersionPrefix>` is present, that value is used as the current version.
 
-#### version-override
-> The version to change the project version to.  If specified, it will force setting the project to the supplied version.
+For `type: assembly`, `AssemblyVersion` and `AssemblyFileVersion` are updated. Commented-out attributes are ignored.
 
-#### release-candidate-wording
-> Words list that trigger a release candidate version bump. Use "," to separate multiple words. Default: 'next'
+## Notes
 
-#### skip-tag
-> Avoid to add a TAG to the version update commit. Options [true, false], Default: true
-
-#### skip-commit
-> Avoid to add a commit after the version is bumped. Options [true, false], Default: false
-
-#### skip-push
-> If true, skip pushing any commits or tags created after the version bump. Options [true, false], Default: false
-
-#### path-to-file
-> (Required) Path to the csproj file where the version is located.
-
-#### target-branch
-> A separate branch to perform the version bump on.  Default: ''
-
-#### pre-release-id
-> Set a custom id for prerelease build.  Default: 'next'
-
-#### commit-message
-> Set a custom commit message for version bump commit. Use {{version}} as a placeholder for the new version.  Default: 'ci: version bump to {{version}}'
-
-#### dry-run
-> Allows running the action without modifying the file and committing changes.
-
-#### release-commit-message-regex
-> Set a custom commit message regex for release commits. Use {{version}} as a placeholder for the new version.  Default: 'ci: version bump to {{version}}'
+- Checkout credentials from `actions/checkout` are reused for `git push`. The token is not written into the remote URL.
+- Only the target project file is staged. The action no longer runs `git commit -a`.
+- `skip-commit` no longer skips tagging and pushing. If you tag without committing, the tag points at the current HEAD.

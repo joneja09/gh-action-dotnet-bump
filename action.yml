@@ -6,7 +6,7 @@ branding:
   icon: 'chevrons-up'
   color: 'gray-dark'
 runs:
-  using: node16
+  using: node20
   main: src/index.js
 inputs:
   type:
@@ -21,12 +21,12 @@ inputs:
     description: |
       Words list that trigger a minor version bump.
       Use "," to separate multiple words.
-    default: 'feat'
+    default: 'feat,feature'
     required: false
   major-wording:
     description: |
       Words list that trigger a major version bump.
-      Use "," to separate multiple words.
+      Use "," to separate multiple words. Conventional commit breaking changes (type!: or BREAKING CHANGE) always trigger a major bump.
     default: 'feat!,fix!,refactor!'
     required: false
   patch-wording:
@@ -35,9 +35,15 @@ inputs:
       Use "," to separate multiple words.
     default: 'fix'
     required: false
+  default:
+    description: |
+      Version part to bump when commit messages do not match any wording.
+      Options: major, minor, patch, prerelease, none
+    default: 'patch'
+    required: false
   version-part:
     description: |
-      This indicates which version part to bump.  If specified, it will force bump on that segment. Options [Major | Minor | Patch]
+      This indicates which version part to bump.  If specified, it will force bump on that segment. Options [Major | Minor | Patch | Prerelease]
     default: ''
     required: false
   version-override:
@@ -64,7 +70,7 @@ inputs:
     default: 'false'
     required: false
   path-to-file:
-    description: 'Path to the csproj file where the version is located'
+    description: 'Path to the csproj, Directory.Build.props, or AssemblyInfo.cs file where the version is located'
     required: true
   target-branch:
     description: 'A separate branch to perform the version bump on'
@@ -84,12 +90,15 @@ inputs:
     description: |
       Set a custom commit message regex for release commits.
       Use {{version}} as a placeholder for the new version.
-      Default
     default: 'ci: version bump to {{version}}'
     required: false
   dry-run:
     description: 'Allows running the action without modifying the file and committing changes.'
-    default: false
+    default: 'false'
+    required: false
+  github-token:
+    description: 'GitHub token used to read commits when the checkout has no history. Defaults to github.token.'
+    default: '${{ github.token }}'
     required: false
 
 outputs:

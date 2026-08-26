@@ -10,6 +10,9 @@ jobs:
   version_bump:
     name: Generate assets and bump package version
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -33,7 +36,7 @@ jobs:
       - name: Create Pull Request with updated asset files
         uses: peter-evans/create-pull-request@v3
         with:
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ github.token }}
           commit-message: 'chore(release): ${{github.event.release.tag_name}}'
           committer: ${{env.GH_USER}}
           author: ${{env.GH_USER}}

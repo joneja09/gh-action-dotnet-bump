@@ -51,6 +51,10 @@ jobs:
     needs: test
     name: semantic release pipeline
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     steps:
       - name: Set git to use LF #to once and for all finish neverending fight between Unix and Windows
         run: |
@@ -70,7 +74,7 @@ jobs:
       - name: Release to NPM and GitHub
         id: release
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GIT_AUTHOR_NAME: ${{ env.GH_USER }}
           GIT_AUTHOR_EMAIL: ${{ env.GH_EMAIL }}

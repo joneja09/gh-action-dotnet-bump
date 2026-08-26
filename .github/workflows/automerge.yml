@@ -23,16 +23,19 @@ jobs:
   autoapprove:
     if: github.event.pull_request.draft == false && github.event.pull_request.user.login == 'joneja09' && !contains(github.event.pull_request.labels.*.name, 'released')
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
     steps:
       - name: Autoapproving
         uses: hmarr/auto-approve-action@v2
         with:
-          github-token: "${{ secrets.GH_TOKEN }}"
+          github-token: ${{ github.token }}
 
       - name: Label autoapproved
         uses: actions/github-script@v5
         with:
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             github.rest.issues.addLabels({
               issue_number: context.issue.number,
@@ -44,11 +47,14 @@ jobs:
     needs: [autoapprove]
     if: github.event.pull_request.user.login == 'joneja09'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Automerging
         uses: pascalgn/automerge-action@v0.13.0
         env:
-          GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"
+          GITHUB_TOKEN: ${{ github.token }}
           GITHUB_LOGIN: ${{ env.GH_USER }}
           MERGE_LABELS: ""
           MERGE_METHOD: "squash"

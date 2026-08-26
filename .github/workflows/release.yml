@@ -35,7 +35,10 @@ jobs:
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
       - name: Install dependencies
-        run: npm install
+        shell: bash
+        run: |
+          rm -rf node_modules
+          npm ci
       - name: Test
         run: npm test
       - name: Run linter
@@ -59,7 +62,10 @@ jobs:
         with:
           node-version: 20
       - name: Install dependencies
-        run: npm install
+        shell: bash
+        run: |
+          rm -rf node_modules
+          npm ci
       - name: Release to NPM and GitHub
         id: release
         env:

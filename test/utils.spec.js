@@ -1,4 +1,4 @@
-const { logInfo, logError, bumpVersion, analyseVersionChange, getCurrentVersionCsproj, getNewProjectContentCsproj, getCurrentVersionAssembly, getNewProjectContentAssembly, getRelevantCommitMessages } = require('../src/utils');
+const { logInfo, logError, bumpVersion, analyseVersionChange, analyseVersionPartChange, getCurrentVersionCsproj, getNewProjectContentCsproj, getCurrentVersionAssembly, getNewProjectContentAssembly, getRelevantCommitMessages, toFourPartVersion, normalizeCurrentVersion, applyDefaultBump, hasBreakingChange, findPreReleaseId } = require('../src/utils');
 describe('Utils', () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -68,6 +68,16 @@ describe('Utils', () => {
       const relevantCommitMessages = getRelevantCommitMessages(messages, 'chore\\(release\\): test something v{{version}}', '');
       expect(relevantCommitMessages).toEqual([]);
     });
+    test('should keep matching after inspecting a non-bump commit', () => {
+      const messages = [
+        'feat: first\n',
+        'ci: version bump to 1.2.3\n',
+        'feat: older\n'
+      ];
+      expect(getRelevantCommitMessages(messages, 'ci: version bump to {{version}}', '')).toEqual([
+        'feat: first\n'
+      ]);
+    });
   });
   
   describe('analyseVersionChange', () => {
@@ -105,6 +115,75 @@ describe('Utils', () => {
       expect(doMinorVersion).toEqual(false);
       expect(doPatchVersion).toEqual(false);
       expect(doPreReleaseVersion).toEqual(true);
+    });
+    test('treats conventional breaking changes as major', () => {
+      const scoped = analyseVersionChange('feat!', 'feat', 'fix', 'pre', ['feat(api)!: drop legacy endpoint']);
+      expect(scoped.doMajorVersion).toEqual(true);
+
+      const footer = analyseVersionChange('feat!', 'feat', 'fix', 'pre', ['fix: handle empty input\n\nBREAKING CHANGE: response shape changed']);
+      expect(footer.doMajorVersion).toEqual(true);
+    });
+    test('does not treat prefix as a fix', () => {
+      const result = analyseVersionChange('feat!', 'feat', 'fix', 'pre', ['prefix: unrelated']);
+      expect(result.doPatchVersion).toEqual(false);
+    });
+    test('uses the default bump when no wording matches', () => {
+      const result = analyseVersionChange('feat!', 'feat', 'fix', 'pre', ['chore: housekeeping'], 'patch');
+      expect(result.doPatchVersion).toEqual(true);
+    });
+  });
+
+  describe('analyseVersionPartChange', () => {
+    test('accepts lowercase version parts', () => {
+      expect(analyseVersionPartChange('minor')).toEqual({
+        doMajorVersion: false,
+        doMinorVersion: true,
+        doPatchVersion: false,
+        doPreReleaseVersion: false
+      });
+    });
+    test('rejects invalid version parts', () => {
+      expect(() => analyseVersionPartChange('build')).toThrow('version-part must be one of');
+    });
+  });
+
+  describe('toFourPartVersion', () => {
+    test('converts a prerelease version to a numeric assembly version', () => {
+      expect(toFourPartVersion('1.2.3-next.0')).toEqual('1.2.3.0');
+    });
+  });
+
+  describe('normalizeCurrentVersion', () => {
+    test('coerces four-part assembly-style versions to semver', () => {
+      expect(normalizeCurrentVersion('1.2.3.0')).toEqual('1.2.3');
+    });
+    test('rejects values that are not versions', () => {
+      expect(() => normalizeCurrentVersion('abc')).toThrow('not a valid semantic version');
+    });
+  });
+
+  describe('applyDefaultBump', () => {
+    test('maps named bumps', () => {
+      expect(applyDefaultBump('prerelease').doPreReleaseVersion).toEqual(true);
+      expect(applyDefaultBump('none')).toEqual({
+        doMajorVersion: false,
+        doMinorVersion: false,
+        doPatchVersion: false,
+        doPreReleaseVersion: false
+      });
+    });
+  });
+
+  describe('hasBreakingChange', () => {
+    test('detects footer and bang syntax', () => {
+      expect(hasBreakingChange('feat!: remove api')).toEqual(true);
+      expect(hasBreakingChange('fix: typo')).toEqual(false);
+    });
+  });
+
+  describe('findPreReleaseId', () => {
+    test('accepts a comma-separated wording string', () => {
+      expect(findPreReleaseId('pre-alpha,next', ['chore: pre-alpha release'])).toEqual('alpha');
     });
   });
   describe('getCurrentVersionCsproj', () => {
@@ -231,6 +310,17 @@ describe('Utils', () => {
       const version = getCurrentVersionCsproj(csproj);
       expect(version).toBeUndefined();
     });
+    test('should return VersionPrefix when Version is absent', () => {
+      const csproj = `<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <VersionPrefix>2.3.4</VersionPrefix>
+    <VersionSuffix>beta.1</VersionSuffix>
+  </PropertyGroup>
+</Project>
+`;
+      expect(getCurrentVersionCsproj(csproj)).toEqual('2.3.4-beta.1');
+    });
   });
   
   describe('getNewProjectContentCsproj', () => {
@@ -305,6 +395,27 @@ describe('Utils', () => {
       const content = getNewProjectContentCsproj('1.0.1', csproj);
       expect(content).toMatchSnapshot();
     });
+    test('should keep assembly versions numeric for prereleases', () => {
+      const csproj = `<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <PackageVersion>1.0.0</PackageVersion>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionSuffix></VersionSuffix>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+  </PropertyGroup>
+</Project>`;
+      const content = getNewProjectContentCsproj('1.1.0-next.0', csproj);
+      expect(content).toContain('<Version>1.1.0-next.0</Version>');
+      expect(content).toContain('<PackageVersion>1.1.0-next.0</PackageVersion>');
+      expect(content).toContain('<VersionPrefix>1.1.0</VersionPrefix>');
+      expect(content).toContain('<VersionSuffix>next.0</VersionSuffix>');
+      expect(content).toContain('<AssemblyVersion>1.1.0.0</AssemblyVersion>');
+      expect(content).toContain('<FileVersion>1.1.0.0</FileVersion>');
+      expect(content).toContain('<InformationalVersion>1.1.0-next.0</InformationalVersion>');
+    });
   });
   
   describe('getCurrentVersionAssembly', () => {
@@ -347,7 +458,13 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyFileVersion("1.0.0.0")]
 `;
       const version = getCurrentVersionAssembly(assembly);
-      expect(version).toEqual('1.2.3');
+      expect(version).toEqual('1.2.0');
+    });
+    test('should ignore commented assembly versions', () => {
+      const assembly = `// [assembly: AssemblyVersion("9.9.9.9")]
+[assembly: AssemblyVersion("2.0.1.0")]
+`;
+      expect(getCurrentVersionAssembly(assembly)).toEqual('2.0.1');
     });
     test('should return undefined when no version present', () => {
       const assembly = `using System.Reflection;

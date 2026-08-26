@@ -1,8 +1,7 @@
 const path = require('path');
 const { promises } = require('fs');
-const core = require('@actions/core');
+const semver = require('semver');
 const {
-  exitSuccess,
   findPreReleaseId,
   analyseVersionChange,
   analyseVersionPartChange,
@@ -10,6 +9,8 @@ const {
   commitChanges,
   logInfo,
   setGitConfigs,
+  checkoutBranch,
+  resolveCurrentBranch,
   getProjectContent,
   getCurrentVersionCsproj,
   getNewProjectContentCsproj,
@@ -17,112 +18,163 @@ const {
   getNewProjectContentAssembly,
   getCommitMessages,
   getRelevantCommitMessages,
-  logError
+  normalizeCurrentVersion
 } = require('./utils');
-
-var isDryRun = false;
 
 function getCurrentVersion(type, projectFile) {
   if (type === 'csproj') {
     return getCurrentVersionCsproj(projectFile);
-  } else if (type === 'assembly') {
+  }
+  if (type === 'assembly') {
     return getCurrentVersionAssembly(projectFile);
   }
 
-  logError(`Type not recognized: ${type}`);
-  return null;
+  throw new Error(`Unsupported type "${type}". Use "csproj" or "assembly".`);
 }
 
-function getNewFileContents(type, newVersion, projectFile)
-{
+function getNewFileContents(type, newVersion, projectFile) {
   if (type === 'csproj') {
     return getNewProjectContentCsproj(newVersion, projectFile);
-  } else if (type === 'assembly') {
+  }
+  if (type === 'assembly') {
     return getNewProjectContentAssembly(newVersion, projectFile);
   }
 
-  return null;
+  throw new Error(`Unsupported type "${type}". Use "csproj" or "assembly".`);
 }
 
-async function updateVersion(type, newVersion, pathToDocument, projectFile) {
-  let newContent = getNewFileContents(type, newVersion, projectFile);
+async function updateVersion(type, newVersion, pathToDocument, projectFile, dryRun) {
+  const newContent = getNewFileContents(type, newVersion, projectFile);
+  logInfo('Prepared updated project file');
 
-  logInfo(`New project file: ${newContent}`);
-
-  if (isDryRun)
-  {
-    logInfo('Skipping File Write.');
+  if (dryRun) {
+    logInfo('Skipping file write because dry-run is enabled.');
+    return;
   }
-  else 
-  {
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
-    await promises.writeFile(pathToDocument, newContent);
-    logInfo('New project file written');
-  }
+
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
+  await promises.writeFile(pathToDocument, newContent);
+  logInfo('New project file written');
 }
 
-function determineNewVersionFromVersionPart(versionPart) {
-  return analyseVersionPartChange(versionPart);
-}
-
-async function determineNewVersionFromCommits(tagPrefix, majorWording, minorWording, patchWording, rcWording, releaseCommitMessageRegex) {
+async function determineNewVersionFromCommits({
+  tagPrefix,
+  majorWording,
+  minorWording,
+  patchWording,
+  rcWording,
+  releaseCommitMessageRegex,
+  defaultBump
+}) {
   const token = process.env.GITHUB_TOKEN;
-    
   // eslint-disable-next-line security/detect-non-literal-require
   const gitEvents = process.env.GITHUB_EVENT_PATH ? require(process.env.GITHUB_EVENT_PATH) : {};
-  logInfo(`Found the following git events: ${JSON.stringify(gitEvents, null, 4)}`);
+  logInfo(`Git event: ${gitEvents.ref || gitEvents.action || 'unknown'}`);
 
   const commitMessages = await getCommitMessages(gitEvents, token);
-  logInfo(`Found commit messages: ${JSON.stringify(commitMessages, null, 4)}`);
+  logInfo(`Found ${commitMessages.length} commit message(s)`);
 
   const relevantCommitMessages = getRelevantCommitMessages(commitMessages, releaseCommitMessageRegex, tagPrefix);
-  logInfo(`Relevant commit messages: ${JSON.stringify(relevantCommitMessages, null, 4)}`);
+  logInfo(`Relevant commit messages: ${relevantCommitMessages.length}`);
 
   if (relevantCommitMessages.length === 0) {
-    exitSuccess('No action necessary because latest commit was a bump!');
-    return false;
+    logInfo('No action necessary because latest commit was a bump!');
+    return {
+      doMajorVersion: false,
+      doMinorVersion: false,
+      doPatchVersion: false,
+      doPreReleaseVersion: false,
+      commitMessages: []
+    };
   }
 
-  return analyseVersionChange(majorWording, minorWording, patchWording, rcWording, commitMessages);
+  return {
+    ...analyseVersionChange(majorWording, minorWording, patchWording, rcWording, relevantCommitMessages, defaultBump),
+    commitMessages: relevantCommitMessages
+  };
 }
 
-async function determineVersion(currentVersion, versionPart, tagPrefix, majorWording, minorWording, patchWording, rcWording, releaseCommitMessageRegex, preReleaseId) {
-  let doMajorVersion = false, doMinorVersion = false, doPatchVersion = false, doPreReleaseVersion = false;
-  if (versionPart > '')
-  {
-    const result = determineNewVersionFromVersionPart(versionPart);
+async function determineVersion({
+  currentVersion,
+  versionPart,
+  tagPrefix,
+  majorWording,
+  minorWording,
+  patchWording,
+  rcWording,
+  releaseCommitMessageRegex,
+  preReleaseId,
+  defaultBump
+}) {
+  let doMajorVersion = false;
+  let doMinorVersion = false;
+  let doPatchVersion = false;
+  let doPreReleaseVersion = false;
+  let commitMessages = [];
+
+  if (versionPart) {
+    const result = analyseVersionPartChange(versionPart);
     doMajorVersion = result.doMajorVersion;
     doMinorVersion = result.doMinorVersion;
     doPatchVersion = result.doPatchVersion;
     doPreReleaseVersion = result.doPreReleaseVersion;
-  }
-  else
-  {
-    const result = await determineNewVersionFromCommits(tagPrefix, majorWording, minorWording, patchWording, rcWording, releaseCommitMessageRegex);
+  } else {
+    const result = await determineNewVersionFromCommits({
+      tagPrefix,
+      majorWording,
+      minorWording,
+      patchWording,
+      rcWording,
+      releaseCommitMessageRegex,
+      defaultBump
+    });
     doMajorVersion = result.doMajorVersion;
     doMinorVersion = result.doMinorVersion;
     doPatchVersion = result.doPatchVersion;
     doPreReleaseVersion = result.doPreReleaseVersion;
+    commitMessages = result.commitMessages || [];
   }
 
   logInfo(`Should do version change? ${JSON.stringify({doMajorVersion, doMinorVersion, doPatchVersion, doPreReleaseVersion})}`);
 
-  //Should we do any version updates? 
   if (!doMajorVersion && !doMinorVersion && !doPatchVersion && !doPreReleaseVersion) {
     logInfo('Could not find any version bump to make, skipping.');
     return null;
   }
-  
-  // case: if prerelease id not explicitly set, use the found prerelease id in commit messages
-  if (doPreReleaseVersion && !preReleaseId) {
-    preReleaseId = findPreReleaseId(rcWording, commitMessages);
+
+  let resolvedPreReleaseId = preReleaseId;
+  if (doPreReleaseVersion && !resolvedPreReleaseId) {
+    resolvedPreReleaseId = findPreReleaseId(rcWording, commitMessages);
   }
 
-  return bumpVersion(currentVersion, doMajorVersion, doMinorVersion, doPatchVersion, doPreReleaseVersion, preReleaseId);
+  const nextVersion = bumpVersion(currentVersion, doMajorVersion, doMinorVersion, doPatchVersion, doPreReleaseVersion, resolvedPreReleaseId);
+  if (!nextVersion) {
+    throw new Error(`Unable to bump version "${currentVersion}". It must be a valid semantic version.`);
+  }
+  return nextVersion;
 }
 
-module.exports = async (
-  tagPrefix,
+async function prepareGit(dryRun, skipTag, skipCommit, skipPush, targetBranch) {
+  if (dryRun) {
+    logInfo('Skipping git processes because dry-run is enabled. (Tag|Commit|Push)');
+    return false;
+  }
+
+  const performGitUpdates = !(skipTag && skipCommit && skipPush);
+  if (!performGitUpdates) {
+    return false;
+  }
+
+  await setGitConfigs();
+  if (targetBranch) {
+    logInfo(`Checking out target branch: ${targetBranch}`);
+    await checkoutBranch(targetBranch);
+  }
+  return true;
+}
+
+async function bumpProjectVersion({
+  tagPrefix = '',
   minorWording,
   majorWording,
   patchWording,
@@ -134,81 +186,83 @@ module.exports = async (
   pathToDocument,
   targetBranch,
   preReleaseId,
-  commitMessageToUse, 
+  commitMessageToUse,
   type,
   dryRun,
   versionOverride,
-  // eslint-disable-next-line sonarjs/cognitive-complexity
-  releaseCommitMessageRegex) => {  
-  
-  isDryRun = dryRun;
-
-  if (dryRun)
-  {
-    logInfo('Skipping Git Processes. (Tag|Commit|Push)');
+  releaseCommitMessageRegex,
+  defaultBump
+}) {
+  if (!pathToDocument) {
+    throw new Error('path-to-file is required.');
   }
 
-  const performGitUpdates = !dryRun && !(skipTag && skipCommit && skipPush);
-  if (performGitUpdates) {
-    await setGitConfigs();
+  if (versionOverride && !semver.valid(versionOverride)) {
+    throw new Error(`version-override "${versionOverride}" is not a valid semantic version.`);
   }
+
+  const currentBranch = resolveCurrentBranch(targetBranch);
+  const performGitUpdates = await prepareGit(dryRun, skipTag, skipCommit, skipPush, targetBranch);
 
   const workspace = process.env.GITHUB_WORKSPACE || '';
+  const resolvedPath = path.join(workspace, pathToDocument);
+  logInfo(`Path to document: ${resolvedPath}`);
 
-  pathToDocument = path.join(workspace, pathToDocument);
-  logInfo(`Path to document: ${pathToDocument}`);
-  
-  const projectFile = getProjectContent(pathToDocument).toString();
-  logInfo(`projectFile: ${projectFile}`);
-  
-  let currentVersion = getCurrentVersion(type, projectFile);
+  const projectFile = getProjectContent(resolvedPath).toString();
+  const currentVersion = getCurrentVersion(type, projectFile);
 
-  if (currentVersion === undefined || currentVersion === null) {
-    logError(`Could not find the current version as it was undefined: ${currentVersion}`);
-    return false;
+  if (!currentVersion) {
+    throw new Error(`Could not find a current version in ${pathToDocument}. Add a <Version> or <VersionPrefix> property, or an AssemblyVersion attribute.`);
   }
 
-  core.setOutput('oldVersion', currentVersion);
-  logInfo(`Current version: ${currentVersion}`);
-    
-  //Bump version
-  const newVersion = versionOverride > '' ? versionOverride : await determineVersion(currentVersion, versionPart, tagPrefix, majorWording, minorWording, patchWording, rcWording, releaseCommitMessageRegex, preReleaseId);
+  const normalizedCurrentVersion = normalizeCurrentVersion(currentVersion);
+  logInfo(`Current version: ${normalizedCurrentVersion}`);
 
-  if (newVersion === null)
-  {
-    return false;
+  const newVersion = versionOverride
+    ? versionOverride
+    : await determineVersion({
+      currentVersion: normalizedCurrentVersion,
+      versionPart,
+      tagPrefix,
+      majorWording,
+      minorWording,
+      patchWording,
+      rcWording,
+      releaseCommitMessageRegex,
+      preReleaseId,
+      defaultBump
+    });
+
+  if (!newVersion) {
+    return {wasBumped: false, oldVersion: normalizedCurrentVersion, newVersion: null};
   }
 
-  core.setOutput('newVersion', `${newVersion}`);
   logInfo(`New version: ${newVersion}`);
-  
-  await updateVersion(type, newVersion, pathToDocument, projectFile);
+  await updateVersion(type, newVersion, resolvedPath, projectFile, dryRun);
 
-  if (dryRun)
-  {
-    logInfo('Skipping commit');
-  }
-  else
-  {
-    let currentBranch;
-    if (performGitUpdates)
-    {
-      // eslint-disable-next-line security/detect-child-process
-      currentBranch = (/refs\/[a-zA-Z]+\/(.*)/).exec(process.env.GITHUB_REF)[1];
-      if (process.env.GITHUB_HEAD_REF) {
-        // Comes from a pull request
-        currentBranch = process.env.GITHUB_HEAD_REF;
-      }
-      if (targetBranch !== '') {
-        // We want to override the branch that we are pulling / pushing to
-        currentBranch = targetBranch;
-      }
-      logInfo(`Current branch: ${currentBranch}`);
-    }
-
-    await commitChanges(newVersion, skipCommit, skipTag, skipPush, commitMessageToUse);
-    logInfo('Changes committed');
+  if (dryRun) {
+    logInfo('Skipping commit because dry-run is enabled.');
+    return {wasBumped: true, oldVersion: normalizedCurrentVersion, newVersion};
   }
 
-  return true;
-};
+  if (performGitUpdates) {
+    logInfo(`Current branch: ${currentBranch || 'unknown'}`);
+    await commitChanges({
+      newVersion,
+      skipCommit,
+      skipTag,
+      skipPush,
+      commitMessageToUse,
+      pathToDocument: resolvedPath,
+      branch: currentBranch,
+      tagPrefix
+    });
+    logInfo('Git updates complete');
+  }
+
+  return {wasBumped: true, oldVersion: normalizedCurrentVersion, newVersion};
+}
+
+module.exports = bumpProjectVersion;
+module.exports.determineVersion = determineVersion;
+module.exports.getCurrentVersion = getCurrentVersion;
